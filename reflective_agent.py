@@ -39,6 +39,18 @@ class GraphState(TypedDict):
     documents: List[str]
     improvements: str
     iteration: int
+    
+
+class GraphContext(TypedDict):
+    """
+    Represents the context of our graph.
+
+    Attributes:
+        generate_model: model used in generate node
+        evaluate_model: model used in evaluate node
+    """
+    generate_model: str
+    evaluate_model: str
 
 def load_docs(doc_path):
     pdf_loader = PyPDFLoader(doc_path)
@@ -63,7 +75,7 @@ def build_vector_store():
     )
     return vector_store
 
-def retrieve(state):
+def retrieve(state, runtime):
     """
     Retrieve documents
 
@@ -79,7 +91,7 @@ def retrieve(state):
     return {"documents": documents, "question": question}
 
 
-def generate(state):
+def generate(state, runtime):
     """
     Generate answer
 
@@ -116,7 +128,7 @@ def generate(state):
     # Define the prompt template
     prompt = ChatPromptTemplate.from_template(creator_prompt)
     # Initialize the Chat Model
-    llm = ChatGoogleGenerativeAI(model="models/gemini-2.0-flash")
+    llm = ChatGoogleGenerativeAI(model=runtime.context.get("evaluate_model"))
 
 
     # Create the RAG chain using the pipe operator
@@ -129,7 +141,7 @@ def generate(state):
     return {"documents": documents, "question": question, "generation": generation, "iteration": iteration + 1}
 
 
-def evaluate(state):
+def evaluate(state, runtime):
     """
     Determines whether the generation is grounded in the document and answers the question.
 
@@ -161,7 +173,7 @@ def evaluate(state):
     {response}
     """
     prompt = ChatPromptTemplate.from_template(evaluator_prompt)
-    llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-pro-preview-03-25")
+    llm = ChatGoogleGenerativeAI(model=runtime.context.get("evaluate_model"))
     
     rag_chain = (
         prompt
@@ -173,7 +185,7 @@ def evaluate(state):
     return {"generation": generation, "improvements": improvements, "iteration": iteration}
 
 
-def decide_to_finish(state):
+def decide_to_finish(state, runtime):
     """
     Determines whether to finish the process or continue with another iteration.
 
@@ -231,7 +243,11 @@ def main():
     app = workflow.compile()
     
     inputs = {"question": "Give me a 10 sentence summary on fad diets"}
-    for output in app.stream(inputs):
+
+    for output in app.stream(inputs, context={
+        "generate_model": "models/gemini-2.5-pro-preview-03-25", 
+        "evaluate_model": "models/gemini-2.5-pro-preview-03-25"
+        }):
         for okey, ovalue in output.items():
             print(f"Output from node '{okey}':")
             print("---")
