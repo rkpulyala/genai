@@ -20,6 +20,7 @@ from langchain_core.documents import Document
 from uuid import uuid4
 
 from langgraph.graph import END, StateGraph
+from pprint import pprint
 
 
 class GraphState(TypedDict):
@@ -115,7 +116,7 @@ def generate(state):
     # Define the prompt template
     prompt = ChatPromptTemplate.from_template(creator_prompt)
     # Initialize the Chat Model
-    llm = ChatGoogleGenerativeAI(model="models/gemini-1.5-pro-preview-0514")
+    llm = ChatGoogleGenerativeAI(model="models/gemini-2.0-flash")
 
 
     # Create the RAG chain using the pipe operator
@@ -160,7 +161,7 @@ def evaluate(state):
     {response}
     """
     prompt = ChatPromptTemplate.from_template(evaluator_prompt)
-    llm = ChatGoogleGenerativeAI(model="models/gemini-1.5-pro-preview-0514")
+    llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-pro-preview-03-25")
     
     rag_chain = (
         prompt
@@ -231,13 +232,16 @@ def main():
     
     inputs = {"question": "Give me a 10 sentence summary on fad diets"}
     for output in app.stream(inputs):
-        for key, value in output.items():
-            print(f"Output from node '{key}':")
-        print("---")
-        print(value)
-        print("\n---\n")
+        for okey, ovalue in output.items():
+            print(f"Output from node '{okey}':")
+            print("---")
+            for ikey, ivalue in ovalue.items():
+                if ikey == "documents":
+                    continue
+                pprint(f"{ikey}:{ivalue}")
+            print("\n---\n")
         
-    print(value['generation'])
+    pprint(ovalue['generation'])
 
 
 if __name__ == "__main__":
