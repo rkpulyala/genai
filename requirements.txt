@@ -4,4 +4,6 @@ langchain-google-genai
 langchain-community
 pypdf
 google-generativeai
+langchain_openai
 chromadb
+langchain-qdrant
